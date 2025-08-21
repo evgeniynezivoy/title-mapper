@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Title Mapping Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            padding: 40px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-area {
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+        .btn:hover {
+            background: #5a67d8;
+        }
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        .results.show {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Job Title Mapping Tool</h1>
+        
+        <div class="input-area">
+            <textarea id="titles-input" placeholder="Enter job titles, one per line...
+
+Example:
+Chief Information Officer
+Senior IT Manager
+Director of Human Resources
+Software Engineer II
+Vice President of Sales"></textarea>
+        </div>
+        
+        <button class="btn" onclick="processTitles()">Process Titles</button>
+        
+        <div class="results" id="results">
+            <h2>Results</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Original Title</th>
+                        <th>Mapped Title</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody id="results-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const WEBHOOK_URL = 'https://nezhivoy.app.n8n.cloud/webhook-test/map-title';
+        
+        async function processTitles() {
+            const input = document.getElementById('titles-input').value;
+            const titles = input.split('\n').filter(t => t.trim());
+            
+            if (titles.length === 0) {
+                alert('Please enter at least one job title');
+                return;
+            }
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        original_title: titles[0]
+                    })
+                });
+                
+                const result = await response.json();
+                displayResults([result]);
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function displayResults(results) {
+            const tbody = document.getElementById('results-body');
+            tbody.innerHTML = '';
+            
+            results.forEach(result => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = result.original_title || '-';
+                row.insertCell(1).textContent = result.mapped_title || result.canonical_label || '-';
+                row.insertCell(2).textContent = Math.round((result.confidence || 0) * 100) + '%';
+            });
+            
+            document.getElementById('results').classList.add('show');
+        }
+    </script>
+</body>
+</html>
